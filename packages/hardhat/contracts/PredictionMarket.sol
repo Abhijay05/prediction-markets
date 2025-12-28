@@ -29,6 +29,14 @@ contract PredictionMarket is Ownable {
     //////////////////////////
     /// State Variables //////
     //////////////////////////
+    address public immutable i_oracle;
+    uint256 public immutable i_initialTokenValue;
+    uint256 public immutable i_percentageLocked;
+    uint256 public immutable i_initialYesProbability;
+
+    string public s_question;
+    uint256 public s_ethCollateral;
+    uint256 public s_lpTradingRevenue;
 
     enum Outcome {
         YES,
@@ -78,6 +86,23 @@ contract PredictionMarket is Ownable {
         uint8 _percentageToLock
     ) payable Ownable(_liquidityProvider) {
         /// Checkpoint 2 ////
+        if (msg.value == 0) {
+            revert PredictionMarket__MustProvideETHForInitialLiquidity();
+        }
+        if (_initialYesProbability >= 100 || _initialYesProbability == 0) {
+            revert PredictionMarket__InvalidProbability();
+        }
+        if (_percentageToLock >= 100 || _percentageToLock == 0) {
+            revert PredictionMarket__InvalidPercentageToLock();
+        }
+        i_oracle = _oracle;
+        s_question = _question;
+        i_initialTokenValue = _initialTokenValue;
+        i_initialYesProbability = _initialYesProbability;
+        i_percentageLocked = _percentageToLock;
+
+        s_ethCollateral = msg.value;
+
         /// Checkpoint 3 ////
     }
 
