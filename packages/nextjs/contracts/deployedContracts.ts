@@ -706,6 +706,19 @@ const deployedContracts = {
         },
         {
           inputs: [],
+          name: "s_isReported",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "",
+              type: "bool",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
           name: "s_lpTradingRevenue",
           outputs: [
             {
@@ -725,6 +738,19 @@ const deployedContracts = {
               internalType: "string",
               name: "",
               type: "string",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "s_winningToken",
+          outputs: [
+            {
+              internalType: "contract PredictionMarketToken",
+              name: "",
+              type: "address",
             },
           ],
           stateMutability: "view",
