@@ -112,11 +112,15 @@ contract PredictionMarket is Ownable {
         i_yesToken = new PredictionMarketToken("Yes", "Y", msg.sender, initialTokenAmount);
         i_noToken = new PredictionMarketToken("No", "N", msg.sender, initialTokenAmount);
 
-        uint256 initalYesAmountLocked = (initialTokenAmount * _initialYesProbability * _percentageToLock * 2) / 10000;
+        uint256 initialYesAmountLocked = (initialTokenAmount * _initialYesProbability * _percentageToLock * 2) / 10000;
         uint256 initialNoAmountLocked = (initialTokenAmount * (100 - _initialYesProbability) * _percentageToLock * 2) /
             10000;
-        i_yesToken.transfer(msg.sender, initalYesAmountLocked);
-        i_noToken.transfer(msg.sender, initialNoAmountLocked);
+
+        bool success1 = i_yesToken.transfer(msg.sender, initialYesAmountLocked);
+        bool success2 = i_noToken.transfer(msg.sender, initialNoAmountLocked);
+        if (!success1 || !success2) {
+            revert PredictionMarket__TokenTransferFailed();
+        }
     }
 
     /////////////////
@@ -129,6 +133,11 @@ contract PredictionMarket is Ownable {
      */
     function addLiquidity() external payable onlyOwner {
         //// Checkpoint 4 ////
+        s_ethCollateral += msg.value;
+        uint256 tokensAmount = (msg.value * PRECISION) / i_initialTokenValue;
+        i_yesToken.mint(address(this), tokensAmount);
+        i_noToken.mint(address(this), tokensAmount);
+        emit LiquidityAdded(msg.sender, msg.value, tokensAmount);
     }
 
     /**
@@ -138,6 +147,24 @@ contract PredictionMarket is Ownable {
      */
     function removeLiquidity(uint256 _ethToWithdraw) external onlyOwner {
         //// Checkpoint 4 ////
+        uint256 amountTokenToBurn = ((_ethToWithdraw * PRECISION) / i_initialTokenValue);
+        if (amountTokenToBurn > (i_yesToken.balanceOf(address(this)))) {
+            revert PredictionMarket__InsufficientTokenReserve(Outcome.YES, amountTokenToBurn);
+        }
+
+        if (amountTokenToBurn > (i_noToken.balanceOf(address(this)))) {
+            revert PredictionMarket__InsufficientTokenReserve(Outcome.NO, amountTokenToBurn);
+        }
+
+        s_ethCollateral -= _ethToWithdraw;
+        i_yesToken.burn(address(this), amountTokenToBurn);
+        i_noToken.burn(address(this), amountTokenToBurn);
+        (bool success, ) = msg.sender.call{ value: _ethToWithdraw }("");
+        if (!success) {
+            revert PredictionMarket__ETHTransferFailed();
+        }
+
+        emit LiquidityRemoved(msg.sender, _ethToWithdraw, amountTokenToBurn);
     }
 
     /**
