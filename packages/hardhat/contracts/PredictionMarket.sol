@@ -298,6 +298,11 @@ contract PredictionMarket is Ownable {
      */
     function _getCurrentReserves(Outcome _outcome) private view returns (uint256, uint256) {
         /// Checkpoint 7 ////
+        if (_outcome == Outcome.YES) {
+            return (i_yesToken.balanceOf(address(this)), i_noToken.balanceOf(address(this)));
+        } else {
+            return (i_noToken.balanceOf(address(this)), i_yesToken.balanceOf(address(this)));
+        }
     }
 
     /**
@@ -308,6 +313,7 @@ contract PredictionMarket is Ownable {
      */
     function _calculateProbability(uint256 tokensSold, uint256 totalSold) private pure returns (uint256) {
         /// Checkpoint 7 ////
+        return (tokensSold * PRECISION) / totalSold;
     }
 
     /////////////////////////
