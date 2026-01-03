@@ -261,6 +261,7 @@ contract PredictionMarket is Ownable {
      */
     function getBuyPriceInEth(Outcome _outcome, uint256 _tradingAmount) public view returns (uint256) {
         /// Checkpoint 7 ////
+        return _calculatePriceInEth(_outcome, _tradingAmount, false);
     }
 
     /**
@@ -271,6 +272,7 @@ contract PredictionMarket is Ownable {
      */
     function getSellPriceInEth(Outcome _outcome, uint256 _tradingAmount) public view returns (uint256) {
         /// Checkpoint 7 ////
+        return _calculatePriceInEth(_outcome, _tradingAmount, true);
     }
 
     /////////////////////////
@@ -289,6 +291,29 @@ contract PredictionMarket is Ownable {
         bool _isSelling
     ) private view returns (uint256) {
         /// Checkpoint 7 ////
+
+        uint256 totalTokenSupply = i_yesToken.totalSupply();
+        (uint256 currentTokenReserve, uint256 currentOtherTokenReserve) = _getCurrentReserves(_outcome);
+        if (!_isSelling) {
+            if (currentTokenReserve < _tradingAmount) {
+                revert PredictionMarket__InsufficientLiquidity();
+            }
+        }
+        uint256 currentTokenSoldBefore = totalTokenSupply - currentTokenReserve;
+        uint256 currentOtherTokenSoldBefore = totalTokenSupply - currentOtherTokenReserve;
+        uint256 totalTokensSoldBefore = currentTokenSoldBefore + currentOtherTokenSoldBefore;
+        uint256 probabilityBefore = _calculateProbability(currentTokenSoldBefore, totalTokensSoldBefore);
+
+        uint256 totalTokensSoldAfter = _isSelling
+            ? totalTokensSoldBefore - _tradingAmount
+            : totalTokensSoldBefore + _tradingAmount;
+        uint256 currentTokensSoldAfter = _isSelling
+            ? currentTokenSoldBefore - _tradingAmount
+            : currentTokenSoldBefore + _tradingAmount;
+        uint256 probabilityAfter = _calculateProbability(currentTokensSoldAfter, totalTokensSoldAfter);
+        uint256 avgProbability = (probabilityBefore + probabilityAfter) / 2;
+        uint256 price = (i_initialTokenValue * avgProbability * _tradingAmount) / (PRECISION * PRECISION);
+        return price;
     }
 
     /**
