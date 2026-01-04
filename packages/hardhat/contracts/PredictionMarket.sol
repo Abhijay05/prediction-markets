@@ -158,6 +158,7 @@ contract PredictionMarket is Ownable {
      * @notice Add liquidity to the prediction market and mint tokens
      * @dev Only the owner can add liquidity and only if the prediction is not reported
      */
+
     function addLiquidity() external payable onlyOwner predictionNotReported {
         //// Checkpoint 4 ////
         s_ethCollateral += msg.value;
@@ -302,8 +303,19 @@ contract PredictionMarket is Ownable {
      * @dev Only if the prediction is resolved
      * @param _amount The amount of winning tokens to redeem
      */
-    function redeemWinningTokens(uint256 _amount) external {
+    function redeemWinningTokens(uint256 _amount) external amountGreaterThanZero(_amount) predictionReported notOwner {
         /// Checkpoint 9 ////
+        if (s_winningToken.balanceOf(msg.sender) < _amount) {
+            revert PredictionMarket__InsufficientWinningTokens();
+        }
+        uint256 ethToReceive = (_amount * i_initialTokenValue) / PRECISION;
+        s_ethCollateral -= ethToReceive;
+        s_winningToken.burn(msg.sender, _amount);
+        (bool sent, ) = msg.sender.call{ value: ethToReceive }("");
+        if (!sent) {
+            revert PredictionMarket__ETHTransferFailed();
+        }
+        emit WinningTokensRedeemed(msg.sender, _amount, ethToReceive);
     }
 
     /**
